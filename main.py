@@ -1,63 +1,188 @@
-preview = True
+# Define se o sistema irá apenas visualizar
+# ou mover os arquivos de verdade. (True = apenas visualizar, False = mover)
+preview = False
 
+# Importa função de logs
 from logger import registrar_log
+
+# Biblioteca para trabalhar com arquivos e pastas
 import os
+
+# Biblioteca usada para mover arquivos
 import shutil
+
+# Importa datetime para trabalhar com datas
+from datetime import datetime
+
 
 # Pasta que será organizada
 pasta_alvo = r"C:\Users\jeffe\Downloads"
 
-# Categorias
+
+# Categorias de arquivos
 categorias = {
-    "Imagens": [".jpg", ".png", ".jpeg"],
-    "Documentos": [".pdf", ".docx", ".txt"],
-    "Planilhas": [".xlsx", ".csv"],
-    "Videos": [".mp4", ".mkv"]
+
+    "Imagens": [
+        ".jpg", ".png", ".jpeg", ".gif", ".bmp",
+        ".tiff", ".svg", ".webp", ".ico",
+        ".heic", ".raw", ".psd", ".ai",
+        ".eps", ".indd"
+    ],
+
+    "Documentos": [
+        ".pdf", ".docx", ".txt", ".pptx",
+        ".ppt", ".doc", ".odt", ".rtf",
+        ".tex", ".md"
+    ],
+
+    "Planilhas": [
+        ".xlsx", ".csv", ".xls", ".ods",
+        ".tsv", ".numbers", ".xml",
+        ".json", ".yaml", ".yml",
+        ".ini", ".log"
+    ],
+
+    "Videos": [
+        ".mp4", ".mkv", ".avi", ".mov",
+        ".wmv", ".flv", ".webm", ".mpeg",
+        ".mpg", ".3gp", ".m4v", ".vob",
+        ".ts", ".rmvb", ".asf", ".divx",
+        ".xvid"
+    ],
+
+    "Audios": [
+        ".mp3", ".wav", ".flac", ".aac",
+        ".ogg", ".wma", ".m4a", ".aiff",
+        ".alac", ".opus", ".amr", ".mid",
+        ".midi", ".ra", ".pcm", ".dts",
+        ".ac3", ".eac3", ".dts-hd",
+        ".truehd", ".mp2", ".mp1", ".m4b"
+    ]
 }
 
-# Lista arquivos
+
+# Lista com nomes dos meses
+meses = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro"
+]
+
+
+# Lista todos os arquivos da pasta
 arquivos = os.listdir(pasta_alvo)
 
-# Percorre arquivos
+
+# Percorre cada arquivo encontrado
 for arquivo in arquivos:
 
-    caminho_arquivo = os.path.join(pasta_alvo, arquivo)
+    # Monta caminho completo do arquivo
+    caminho_arquivo = os.path.join(
+        pasta_alvo,
+        arquivo
+    )
 
-    # Verifica se é arquivo
-    if os.path.isfile(caminho_arquivo):
+    # Ignora pastas
+    if not os.path.isfile(caminho_arquivo):
+        continue
 
-        # Separar nome e extensão
-        nome, extensao = os.path.splitext(arquivo)
+    # Separa nome e extensão
+    nome, extensao = os.path.splitext(arquivo)
 
-        # Percorre categorias
-        for categoria, extensoes in categorias.items():
+    # Obtém data da última modificação
+    timestamp = os.path.getmtime(caminho_arquivo)
 
-            # Verifica extensão
-            if extensao.lower() in extensoes:
+    # Converte timestamp para data real
+    data_modificacao = datetime.fromtimestamp(timestamp)
 
-                pasta_categoria = os.path.join(pasta_alvo, categoria)
+    # Obtém ano do arquivo
+    ano = str(data_modificacao.year)
 
-                # Cria pasta se não existir
-                os.makedirs(pasta_categoria, exist_ok=True)
+    # Obtém número do mês
+    numero_mes = data_modificacao.month
 
-                origem = caminho_arquivo
-                destino = os.path.join(pasta_categoria, arquivo)
+    # Converte número em nome do mês
+    nome_mes = meses[numero_mes - 1]
 
-                # PREVIEW MODE
-                if preview:
+    # Percorre categorias
+    for categoria, extensoes in categorias.items():
 
-                    mensagem = f"[PREVIEW] {arquivo} seria movido para {categoria}"
+        # Verifica extensão
+        if extensao.lower() in extensoes:
 
-                    print(mensagem)
+            # Cria estrutura:
+            # Categoria/Ano/Mês
+            pasta_categoria = os.path.join(
+                pasta_alvo,
+                categoria,
+                ano,
+                nome_mes
+            )
 
-                    registrar_log(mensagem)
+            # Cria pastas automaticamente
+            os.makedirs(
+                pasta_categoria,
+                exist_ok=True
+            )
 
-                else:
+            # Caminho final do arquivo
+            destino = os.path.join(
+                pasta_categoria,
+                arquivo
+            )
 
-                    shutil.move(origem, destino)
+            # Evita sobrescrever arquivos
+            contador = 1
 
-                    mensagem = f"{arquivo} movido para {categoria}"
+            while os.path.exists(destino):
 
-                    print(mensagem)
+                novo_nome = (
+                    f"{nome}_{contador}{extensao}"
+                )
 
-                    registrar_log(mensagem)
+                destino = os.path.join(
+                    pasta_categoria,
+                    novo_nome
+                )
+
+                contador += 1
+
+            # Preview mode
+            if preview:
+
+                mensagem = (
+                    f"[PREVIEW] "
+                    f"{arquivo} -> "
+                    f"{categoria}/{ano}/{nome_mes}"
+                )
+
+            else:
+
+                # Move arquivo
+                shutil.move(
+                    caminho_arquivo,
+                    destino
+                )
+
+                mensagem = (
+                    f"{arquivo} movido para "
+                    f"{categoria}/{ano}/{nome_mes}"
+                )
+
+            # Exibe mensagem
+            print(mensagem)
+
+            # Salva log
+            registrar_log(mensagem)
+
+            # Interrompe loop
+            break
